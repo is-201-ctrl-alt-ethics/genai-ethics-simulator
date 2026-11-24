@@ -1,0 +1,9 @@
+# LaTeX build output (docs/plan/plan.tex)
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+docs/plan/build.out
+docs/plan/plan.pdf

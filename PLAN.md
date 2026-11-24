@@ -6,6 +6,9 @@ and administration). The full brief is in [docs/requirements/final-req.md](docs/
 
 **Due: Saturday, December 19, 2026.** Submit a working website link and a 10–12 min YouTube video.
 
+A LaTeX version for sharing as a PDF is in [docs/plan/plan.tex](docs/plan/plan.tex); build it with
+`latexmk -pdf plan.tex`. This file is the source of truth, so update both when the plan changes.
+
 ## 1. What the requirements boil down to
 
 | Area | Hard requirement | Where it lives in this repo |

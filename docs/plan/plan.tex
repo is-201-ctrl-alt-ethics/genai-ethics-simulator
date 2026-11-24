@@ -1,0 +1,252 @@
+% LaTeX version of PLAN.md, for sharing with members who have not joined the GitHub org yet.
+% PLAN.md is the source of truth: when it changes, update this file to match.
+% Build: latexmk -pdf plan.tex   (or: pdflatex plan.tex, twice)
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{upquote}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage{tcolorbox}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{accent}{HTML}{1F4E79}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\titleformat{\section}{\Large\bfseries\color{accent}}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{}{0em}{}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small IS 201 Final Project Plan}
+\rhead{\small Ctrl+Alt+Ethics}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\repo}{https://github.com/is-201-ctrl-alt-ethics/genai-ethics-simulator}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries\color{accent} GenAI Ethics Simulator: Project Plan}\par\vspace{4pt}
+  {\large IS 201: Computer Ethics \textperiodcentered{} Final Group Project}\par\vspace{2pt}
+  Ctrl+Alt+Ethics \textperiodcentered{} University of the Philippines \textperiodcentered{} First Semester, AY 2026--2027
+\end{center}
+
+\begin{tcolorbox}[colback=accent!6,colframe=accent,boxrule=0.6pt,arc=2pt]
+Working plan for a \textbf{Technology and Society Ethics Simulator} for
+\textbf{Scenario 4: Generative AI in Universities} (institutional policy on GenAI in teaching,
+assessment and administration).
+
+\textbf{Due: Saturday, December 19, 2026.} Submit a working website link and a 10--12 minute YouTube video.
+
+\begin{tabular}{@{}ll@{}}
+Repository: & \url{\repo} \\
+Live site:  & \url{https://is-201-ctrl-alt-ethics.github.io/genai-ethics-simulator/} \\
+Full brief: & \code{docs/requirements/final-req.md} in the repository \\
+\end{tabular}
+\end{tcolorbox}
+
+\section{What the requirements boil down to}
+
+\begin{tabularx}{\textwidth}{@{}p{3.1cm}LL@{}}
+\toprule
+\textbf{Area} & \textbf{Hard requirement} & \textbf{Where it lives in the repo} \\
+\midrule
+Decision variables & 5+, each with 2+ meaningful options & \code{data/model.json} $\rightarrow$ \code{variables} \\
+Indicators & 5+, distinct, clear interpretation; must cover \textbf{equity}, \textbf{governance}, \textbf{sustainability} + others & \code{data/model.json} $\rightarrow$ \code{indicators} \\
+Interactions & 4+, each on a \textbf{different pair} of variables, each justified & \code{data/model.json} $\rightarrow$ \code{interactions} \\
+Course concepts & The 3 central areas \textbf{shape the model}, plus 2+ of: ethical frameworks and professional responsibility, privacy and data rights, cybersecurity, AI, software development & Tagged per rule in \code{model.json}; explained on the site \\
+Model behaviour & Auto-updates; several variables per indicator; real trade-offs (no ``right answer''); understandable rules & \code{js/engine.js} + the rendered rules table \\
+Site sections & Scenario overview + stakeholders; decision interface; dashboard; ethical explanations; model transparency (rules, assumptions, limitations, hypothetical labels); references & \code{index.html} sections \\
+Evidence & Each key relationship: \textbf{why}, \textbf{what supports it}, \textbf{assumptions and limitations}; how weights were set & \code{justification} + \code{sources} per rule; \code{data/references.json} \\
+No separate report & Everything is inside the site & Nothing graded lives only in \code{docs/} \\
+Video & 10--12 min; scenario, model + justification, demo, insights, limitations; \textbf{every member speaks} & \code{docs/video/script.md} \\
+\bottomrule
+\end{tabularx}
+
+\textbf{Grading:} ethical reasoning 30\% \textperiodcentered{} model quality and justification 30\%
+\textperiodcentered{} functionality and usability 25\% \textperiodcentered{} presentation 15\%.
+So 60\% rides on the \emph{reasoning and evidence}, not the code, and the plan front-loads research
+and model design.
+
+\section{Key design decision: one model file drives everything}
+
+The model (variables, options, indicators, base values, effects, interactions, justifications and
+source IDs) lives in \textbf{one data file}, \code{data/model.json}. The site:
+\begin{enumerate}
+  \item builds the decision controls from it,
+  \item computes the indicators from it (\code{js/engine.js}, a small pure function), and
+  \item renders the ``How the model works'' rules table and the justifications from it.
+\end{enumerate}
+
+So the rules users read are \emph{exactly} the rules that run, and the team can change the model
+without touching UI code. A small check script (\code{tools/check-model.js}, run in CI) fails if the
+model drops below the minimums: under 5 variables or indicators, a variable with fewer than 2
+options, a missing required dimension, fewer than 4 interactions, two interactions on the same
+pair, or a rule with no justification or source.
+
+Scoring follows the brief's sample: every indicator starts at a base (e.g.\ 50), rule effects add
+up, and the result is clamped to 0--100. All values are labelled \textbf{hypothetical}.
+
+\section{Repo structure}
+
+\begin{verbatim}
+genai-ethics-simulator/
+|-- index.html              # the whole site, served by GitHub Pages
+|-- css/style.css
+|-- js/
+|   |-- engine.js           # pure: (model, decisions) -> scores + rules fired
+|   `-- app.js              # controls, dashboard, explanations, rules table
+|-- data/
+|   |-- model.json          # single source of truth for the model
+|   `-- references.json     # citation list; rules cite these by id
+|-- tools/check-model.js    # requirement checks on model.json (run by CI)
+|-- docs/                   # team working files, NOT graded
+|   |-- requirements/final-req.md
+|   |-- research/           # evidence log: one note per source or topic
+|   `-- video/script.md     # video outline, speaker split
+|-- .github/workflows/check.yml
+|-- PLAN.md
+`-- README.md
+\end{verbatim}
+
+Site sections in \code{index.html}: \textbf{Overview} (context, stakeholders) $\rightarrow$
+\textbf{Simulator} (decisions, live dashboard, which rules fired) $\rightarrow$ \textbf{Trade-offs}
+(ethical explanations) $\rightarrow$ \textbf{How the model works} (rules table, assumptions,
+limitations, how weights were set) $\rightarrow$ \textbf{References}.
+
+\section{Draft model (a starting point for the team, not a decision)}
+
+These are \emph{candidates} to argue over in the model-design meeting. Every item kept needs
+evidence (Section~\ref{sec:evidence}).
+
+\subsection{Stakeholders}
+Students (including those with limited devices or connectivity, and non-native English writers),
+faculty, administrators and staff, the university as an institution, AI vendors, parents and the
+public, and the environment.
+
+\subsection{Candidate decision variables}
+\begin{tabularx}{\textwidth}{@{}p{3.6cm}L@{}}
+\toprule
+\textbf{Variable} & \textbf{Options} \\
+\midrule
+Usage policy & Ban \textperiodcentered{} Allowed with disclosure \textperiodcentered{} Fully integrated \\
+AI detection & None \textperiodcentered{} Detector as a flag for human review \textperiodcentered{} Detector output as evidence \\
+Tool provisioning & Students bring their own (free tiers) \textperiodcentered{} Institution-licensed enterprise tool \textperiodcentered{} Self-hosted open model \\
+Assessment design & Unchanged \textperiodcentered{} Partly redesigned (oral, in-class, process-based) \textperiodcentered{} Fully redesigned \\
+Data governance & Vendor default terms \textperiodcentered{} Negotiated data agreement (no training on student data) \textperiodcentered{} On-premise only \\
+AI literacy training & None \textperiodcentered{} Optional \textperiodcentered{} Mandatory for students and faculty \\
+Administrative use & None \textperiodcentered{} Drafting and support only \textperiodcentered{} Automated decisions (e.g.\ admissions or advising triage) \\
+Policy governance & Administration only \textperiodcentered{} Committee with faculty and student representatives \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Candidate indicators}
+\begin{tabularx}{\textwidth}{@{}p{6cm}L@{}}
+\toprule
+\textbf{Indicator} & \textbf{Dimension} \\
+\midrule
+Equity of access & Equity and social justice \\
+Fairness of integrity enforcement & Equity and social justice \\
+Accountability and transparency & Technology governance \\
+Environmental footprint & Computing and sustainability \\
+Student data privacy & Privacy, data and digital rights \\
+Learning and skill development & Other (learning outcomes) \\
+Assessment validity & Other (academic integrity) \\
+Faculty workload & Other (professional responsibility) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Candidate interactions (each on a different pair)}
+\begin{enumerate}
+  \item \textbf{AI detection $\times$ Usage policy:} detectors under a ban drive more accusations,
+        and known false positives against non-native English writers hurt \emph{fairness of
+        enforcement} more.
+  \item \textbf{Tool provisioning $\times$ Usage policy:} full integration with student-supplied
+        tools widens the paid-tier gap (\emph{equity}); with institution-licensed tools it narrows it.
+  \item \textbf{Tool provisioning $\times$ Data governance:} negotiated terms protect
+        \emph{privacy} only for institution-licensed tools; with bring-your-own tools the university
+        controls nothing.
+  \item \textbf{AI literacy $\times$ Assessment design:} redesigned assessment raises
+        \emph{learning} more when students and faculty are trained to use the tools well.
+  \item \textbf{Administrative use $\times$ Policy governance:} automated admin decisions hurt
+        \emph{accountability} far more without a representative oversight body.
+  \item A \emph{sustainability} interaction: \textbf{Tool provisioning $\times$ Usage policy} on
+        energy use is taken by \#2, so look for another pair (e.g.\ self-hosted hardware $\times$
+        usage level). Keep every pair distinct.
+\end{enumerate}
+
+\subsection{Course concepts to tag}
+Central: equity, governance, sustainability. Plus \textbf{AI}, \textbf{privacy, data and digital
+rights}, and \textbf{ethical frameworks and professional responsibility} (e.g.\ ACM Code of Ethics,
+faculty duty of care).
+
+\section{Evidence to find and verify}\label{sec:evidence}
+
+A member checks every source before it is cited. Leads to start from (not yet verified):
+\begin{itemize}
+  \item UNESCO, \emph{Guidance for generative AI in education and research} (2023).
+  \item Liang et al.\ (2023), GPT detectors are biased against non-native English writers (\emph{Patterns}).
+  \item Republic Act 10173, the Data Privacy Act of 2012 (Philippines), and National Privacy Commission issuances.
+  \item University of the Philippines guidance on responsible AI use, and any CHED guidance (check what exists).
+  \item EU AI Act, which lists some education uses as high-risk (a governance comparison).
+  \item Research on the energy and water use of AI training and inference (e.g.\ Luccioni et al.).
+  \item ACM Code of Ethics and Professional Conduct.
+  \item Documented cases: universities that banned and later reversed GenAI policies; false
+        accusations from AI detectors.
+\end{itemize}
+Log each source in \code{docs/research/} with the claim it supports, the rule(s) it backs, and its
+limitations.
+
+\section{Timeline (milestones)}
+
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.4cm}p{2.7cm}L@{}}
+\toprule
+\textbf{Milestone} & \textbf{Dates} & \textbf{Outcome} \\
+\midrule
+\textbf{M1} Research and model design & Nov 24 -- Dec 1 & Stakeholders, final variables, indicators and interactions, evidence log, weights rationale \\
+\textbf{M2} Simulator build & Dec 2 -- Dec 8 & \code{model.json} filled in; engine, UI, dashboard and rules table working on Pages; CI check passing \\
+\textbf{M3} Site content & Dec 5 -- Dec 12 & Overview, trade-off explanations, assumptions, limitations and references written into the site \\
+\textbf{M4} Review and polish & Dec 12 -- Dec 15 & Full checklist audit, usability test with someone outside the group, mobile check, fixes \\
+\textbf{M5} Video and submission & Dec 15 -- Dec 19 & Script, recording (everyone speaks), YouTube upload, both links submitted \\
+\bottomrule
+\end{tabularx}
+
+Aim to submit by \textbf{December 18} to keep a day of buffer.
+
+\section{How we work}
+\begin{itemize}
+  \item Work is tracked as issues under the milestones above, using the org's issue forms (Task,
+        Bug, Feature, Docs): \url{\repo/issues}.
+  \item Branch per issue, open a pull request, and get one teammate's review before merging to
+        \code{main}. \code{main} is what GitHub Pages serves.
+  \item \textbf{GenAI use:} allowed for research help, coding and debugging, per the brief. Members
+        verify every source, and the model's rules and ethical judgments are the group's own; AI
+        output never stands in for a justification.
+  \item Every member contributes and appears in the video, as the brief requires.
+\end{itemize}
+
+\section{Open questions}
+\begin{itemize}
+  \item Team members' GitHub handles and roles (research, model, front-end, content, video).
+  \item Final variable and indicator set, and the weighting scheme (fixed points as in the sample,
+        or something else).
+  \item One page or several? One page keeps the demo simple, so that is the default.
+\end{itemize}
+
+\end{document}
